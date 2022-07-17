@@ -20,8 +20,8 @@ import com.vlkan.rfos.policy.DailyRotationPolicy;
 import com.vlkan.rfos.policy.RotationPolicy;
 import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
 import com.vlkan.rfos.policy.WeeklyRotationPolicy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -62,8 +62,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class RotatingFileOutputStream extends OutputStream implements Rotatable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileOutputStream.class);
-
+    private static final Logger LOGGER = LogManager.getLogger(RotatingFileOutputStream.class);
     private final RotationConfig config;
 
     private final List<RotationCallback> callbacks;

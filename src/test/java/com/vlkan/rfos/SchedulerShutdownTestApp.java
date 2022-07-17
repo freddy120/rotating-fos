@@ -17,9 +17,9 @@
 package com.vlkan.rfos;
 
 import com.vlkan.rfos.policy.TimeBasedRotationPolicy;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,12 +34,12 @@ import java.util.stream.Collectors;
 
 public enum SchedulerShutdownTestApp {;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SchedulerShutdownTestApp.class);
+    private static final Logger LOGGER = LogManager.getLogger(SchedulerShutdownTestApp.class);
+
 
     private static final class DelayedRotationPolicy extends TimeBasedRotationPolicy {
 
-        private static final Logger LOGGER = LoggerFactory.getLogger(DelayedRotationPolicy.class);
-
+        private static final Logger LOGGER = LogManager.getLogger(DelayedRotationPolicy.class);
         private final Queue<Duration> delays;
 
         private DelayedRotationPolicy(Long... delays) {

@@ -19,7 +19,7 @@ package com.vlkan.rfos.policy;
 import com.vlkan.rfos.Clock;
 import com.vlkan.rfos.Rotatable;
 import com.vlkan.rfos.RotationConfig;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.time.Duration;
 import java.time.Instant;

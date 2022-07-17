@@ -17,8 +17,8 @@
 package com.vlkan.rfos;
 
 import com.vlkan.rfos.policy.RotationPolicy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -31,7 +31,8 @@ public class LoggingRotationCallback implements RotationCallback {
 
     private static final LoggingRotationCallback INSTANCE = new LoggingRotationCallback();
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggingRotationCallback.class);
+    private static final Logger LOGGER = LogManager.getLogger(LoggingRotationCallback.class);
+
 
     private LoggingRotationCallback() {
         // Do nothing.

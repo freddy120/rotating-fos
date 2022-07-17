@@ -17,8 +17,9 @@
 package com.vlkan.rfos.policy;
 
 import com.vlkan.rfos.Rotatable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 import java.time.Instant;
 import java.util.Objects;
@@ -28,7 +29,8 @@ import java.util.Objects;
  */
 public class SizeBasedRotationPolicy implements RotationPolicy {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SizeBasedRotationPolicy.class);
+    private static final Logger LOGGER = LogManager.getLogger(SizeBasedRotationPolicy.class);
+
 
     private final long maxByteCount;
 

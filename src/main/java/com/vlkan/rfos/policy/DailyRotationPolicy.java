@@ -17,8 +17,8 @@
 package com.vlkan.rfos.policy;
 
 import com.vlkan.rfos.Clock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.time.Instant;
 
@@ -27,7 +27,7 @@ import java.time.Instant;
  */
 public class DailyRotationPolicy extends TimeBasedRotationPolicy {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DailyRotationPolicy.class);
+    private static final Logger LOGGER = LogManager.getLogger(DailyRotationPolicy.class);
 
     private static final DailyRotationPolicy INSTANCE = new DailyRotationPolicy();
 

@@ -16,10 +16,9 @@
 
 package com.vlkan.rfos;
 
-import com.vlkan.rfos.policy.DailyRotationPolicy;
-import com.vlkan.rfos.policy.RotationPolicy;
-import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
-import com.vlkan.rfos.policy.WeeklyRotationPolicy;
+import com.vlkan.rfos.policy.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,8 +27,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -50,8 +47,7 @@ import java.util.zip.GZIPOutputStream;
 
 class RotatingFileOutputStreamTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileOutputStreamTest.class);
-
+    private static final Logger LOGGER = LogManager.getLogger(RotatingFileOutputStreamTest.class);
     @TempDir
     File tmpDir;
 
