@@ -56,15 +56,23 @@ public abstract class TimeBasedRotationPolicy implements RotationPolicy {
 
     @Override
     public synchronized void start(Rotatable rotatable) {
+        getLogger().debug("start TimeBasedRotationPolicy");
         RotationConfig config = rotatable.getConfig();
         Clock clock = config.getClock();
         Instant currentInstant = clock.now();
         Instant triggerInstant = getTriggerInstant(clock);
         long triggerDelayMillis = Duration.between(currentInstant, triggerInstant).toMillis();
         Runnable task = createTask(rotatable, triggerInstant);
+
+        getLogger().debug("start TimeBasedRotationPolicy trigger:{}", triggerInstant);
+
+        getLogger().debug(config
+            .getExecutorService());
+
         this.scheduledFuture = config
                 .getExecutorService()
                 .schedule(task, triggerDelayMillis, TimeUnit.MILLISECONDS);
+        getLogger().debug("start TimeBasedRotationPolicy task delay:{}", triggerDelayMillis);
     }
 
     private Runnable createTask(Rotatable rotatable, Instant triggerInstant) {

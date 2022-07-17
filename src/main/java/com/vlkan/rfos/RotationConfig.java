@@ -86,6 +86,7 @@ public class RotationConfig {
     private final boolean append;
 
     private final boolean compress;
+    private final boolean rotateEmpty;
 
     private final int maxBackupCount;
 
@@ -100,6 +101,7 @@ public class RotationConfig {
         this.policies = Collections.unmodifiableSet(builder.policies);
         this.append = builder.append;
         this.compress = builder.compress;
+        this.rotateEmpty = builder.rotateEmpty;
         this.maxBackupCount = builder.maxBackupCount;
         this.clock = builder.clock;
         this.callbacks = Collections.unmodifiableSet(builder.callbacks);
@@ -206,6 +208,10 @@ public class RotationConfig {
         return compress;
     }
 
+    public boolean isRotateEmpty() {
+        return rotateEmpty;
+    }
+
     /**
      * @return the default value of the {@code maxBackupCount}, indicating, if
      * greater than zero, rotated files will be named as {@code file.0},
@@ -281,6 +287,7 @@ public class RotationConfig {
         return append == that.append &&
                 compress == that.compress &&
 				maxBackupCount == that.maxBackupCount &&
+            rotateEmpty == that.compress &&
                 Objects.equals(file, that.file) &&
                 Objects.equals(filePattern, that.filePattern) &&
                 Objects.equals(executorService, that.executorService) &&
@@ -298,6 +305,7 @@ public class RotationConfig {
                 policies,
                 append,
                 compress,
+                rotateEmpty,
                 maxBackupCount,
                 clock,
                 callbacks);
@@ -341,6 +349,7 @@ public class RotationConfig {
         private boolean append = DEFAULT_APPEND;
 
         private boolean compress = DEFAULT_COMPRESS;
+        private boolean rotateEmpty = false;
 
         private int maxBackupCount = DEFAULT_MAX_BACKUP_COUNT;
 
@@ -358,6 +367,7 @@ public class RotationConfig {
             this.policies = config.policies;
             this.append = config.append;
             this.compress = config.append;
+            this.rotateEmpty = config.rotateEmpty;
             this.maxBackupCount = config.maxBackupCount;
             this.clock = config.clock;
             this.callbacks = config.callbacks;
@@ -518,6 +528,13 @@ public class RotationConfig {
             this.compress = compress;
             return this;
         }
+
+        public Builder rotateEmpty(boolean rotateEmpty) {
+            this.rotateEmpty = rotateEmpty;
+            return this;
+        }
+
+
 
         /**
          * Gets the {@code maxBackupCount}, indicating, if greater than zero,

@@ -137,8 +137,12 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         // Skip rotation if the file is empty.
         stream.flush();
         if (readFileLength() == 0) {
-            LOGGER.debug("empty file, skipping rotation {file={}}", config.getFile());
-            return;
+
+            if(!config.isRotateEmpty()){
+                LOGGER.debug("empty file, skipping rotation {file={}}", config.getFile());
+                return;
+            }
+
         }
 
         // Close the file. (Required before rename on Windows!)
