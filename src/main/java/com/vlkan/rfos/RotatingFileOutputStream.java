@@ -29,7 +29,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,6 +40,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -71,6 +72,14 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
 
     private volatile ByteCountingOutputStream stream;
 
+    private Pattern sequencePattern = Pattern.compile("(\\$\\{\\s*SEQ\\s*(0+)\\s*})");
+    private long sequenceCounter;
+    private long maxSequenceNum;
+    private String sequencePatternStr;
+    private String sequencePatternNumberStr;
+    private boolean hasSequencePattern;
+    private String sequencePatternFormatStr;
+
     /**
      * Constructs an instance using the given configuration
      *
@@ -81,6 +90,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         this.callbacks = new ArrayList<>(config.getCallbacks());
         this.writeSensitivePolicies = collectWriteSensitivePolicies(config.getPolicies());
         this.stream = open(null, config.getClock().now());
+        getSequencePatternStr();
+        if(hasSequencePattern)
+            setSequenceCounter();
         startPolicies();
     }
 
@@ -158,7 +170,12 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
 
         // Otherwise, rename using the provided file pattern.
         else {
-        	rotatedFile = config.getFilePattern().create(instant).getAbsoluteFile();
+            if(hasSequencePattern) {
+                rotatedFile = config.getFilePattern().create(instant, sequencePatternStr, getSequenceStr()).getAbsoluteFile();
+                incrementSequence();
+            } else {
+                rotatedFile = config.getFilePattern().create(instant).getAbsoluteFile();
+            }
             LOGGER.debug("renaming {file={}, rotatedFile={}}", config.getFile(), rotatedFile);
             renameFile(config.getFile(), rotatedFile);
         }
@@ -392,4 +409,29 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         return String.format("RotatingFileOutputStream{file=%s}", config.getFile());
     }
 
+    private void incrementSequence() {
+        sequenceCounter++;
+        if(sequenceCounter > maxSequenceNum) {
+            sequenceCounter = 0;
+        }
+    }
+    private String getSequenceStr() {
+        return String.format(sequencePatternFormatStr, sequenceCounter);
+    }
+    private void getSequencePatternStr() {
+        String pattern = this.config.getFilePattern().getPattern();
+        Matcher matcher = sequencePattern.matcher(pattern);
+        if(matcher.find()) {
+            this.sequencePatternStr = matcher.group(1);
+            this.sequencePatternNumberStr = matcher.group(2);
+            this.hasSequencePattern = true;
+        } else {
+            this.hasSequencePattern = false;
+        }
+    }
+    private void setSequenceCounter() {
+        maxSequenceNum = Long.parseLong("1" + sequencePatternNumberStr) - 1;
+        sequenceCounter = 0;
+        sequencePatternFormatStr = "%0" + sequencePatternNumberStr.length() + "d";
+    }
 }

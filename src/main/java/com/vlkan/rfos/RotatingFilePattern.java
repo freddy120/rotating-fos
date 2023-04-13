@@ -190,11 +190,17 @@ public class RotatingFilePattern {
      * @return a file, where the name is formatted by this pattern and the given instant
      */
     public File create(Instant instant) {
+        return create(instant, null, null);
+    }
+    public File create(Instant instant, String seqPatternStr, String seqToAddStr) {
         StringBuilder pathNameBuilder = new StringBuilder();
         for (Field field : fields) {
             field.render(pathNameBuilder, instant);
         }
         String pathName = pathNameBuilder.toString();
+        if(seqPatternStr != null && seqToAddStr != null) {
+            pathName = pathName.replace(seqPatternStr, seqToAddStr);
+        }
         return new File(pathName);
     }
 
