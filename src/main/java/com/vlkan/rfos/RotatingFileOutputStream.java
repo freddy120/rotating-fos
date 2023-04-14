@@ -34,10 +34,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -79,6 +77,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
     private String sequencePatternNumberStr;
     private boolean hasSequencePattern;
     private String sequencePatternFormatStr;
+    private Instant rotatedInstant;
 
     /**
      * Constructs an instance using the given configuration
@@ -86,13 +85,17 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
      * @param config a configuration instance
      */
     public RotatingFileOutputStream(RotationConfig config) {
+        this(config, 0);
+    }
+    public RotatingFileOutputStream(RotationConfig config, long counter) {
         this.config = Objects.requireNonNull(config, "config");
         this.callbacks = new ArrayList<>(config.getCallbacks());
         this.writeSensitivePolicies = collectWriteSensitivePolicies(config.getPolicies());
         this.stream = open(null, config.getClock().now());
-        getSequencePatternStr();
-        if(hasSequencePattern)
-            setSequenceCounter();
+        setSequencePatternStr();
+//        if(hasSequencePattern)
+//            setSequenceCounter(counter);
+        setSequenceCounter(counter);
         startPolicies();
     }
 
@@ -171,11 +174,25 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         // Otherwise, rename using the provided file pattern.
         else {
             if(hasSequencePattern) {
-                rotatedFile = config.getFilePattern().create(instant, sequencePatternStr, getSequenceStr()).getAbsoluteFile();
-                incrementSequence();
+                String seqToAddStr;
+                File rotatedFileTemp;
+                seqToAddStr = String.format(sequencePatternFormatStr, sequenceCounter);
+                //rotatedFile = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
+                rotatedFileTemp = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
+                //while(rotatedFile.exists()) {
+                while(rotatedFileTemp.exists()) {
+                    incrementSequenceCounter();
+                    seqToAddStr = String.format(sequencePatternFormatStr, sequenceCounter);
+                    //rotatedFile = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
+                    rotatedFileTemp = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
+                    if(0 == sequenceCounter)
+                        break;
+                }
+                rotatedFile = rotatedFileTemp;
             } else {
                 rotatedFile = config.getFilePattern().create(instant).getAbsoluteFile();
             }
+            rotatedInstant = instant;
             LOGGER.debug("renaming {file={}, rotatedFile={}}", config.getFile(), rotatedFile);
             renameFile(config.getFile(), rotatedFile);
         }
@@ -409,29 +426,32 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         return String.format("RotatingFileOutputStream{file=%s}", config.getFile());
     }
 
-    private void incrementSequence() {
+    private void incrementSequenceCounter() {
         sequenceCounter++;
         if(sequenceCounter > maxSequenceNum) {
             sequenceCounter = 0;
         }
     }
-    private String getSequenceStr() {
-        return String.format(sequencePatternFormatStr, sequenceCounter);
-    }
-    private void getSequencePatternStr() {
+    private void setSequencePatternStr() {
         String pattern = this.config.getFilePattern().getPattern();
         Matcher matcher = sequencePattern.matcher(pattern);
         if(matcher.find()) {
             this.sequencePatternStr = matcher.group(1);
             this.sequencePatternNumberStr = matcher.group(2);
+            maxSequenceNum = Long.parseLong("1" + sequencePatternNumberStr) - 1;
+            sequencePatternFormatStr = "%0" + sequencePatternNumberStr.length() + "d";
             this.hasSequencePattern = true;
         } else {
             this.hasSequencePattern = false;
         }
     }
-    private void setSequenceCounter() {
-        maxSequenceNum = Long.parseLong("1" + sequencePatternNumberStr) - 1;
-        sequenceCounter = 0;
-        sequencePatternFormatStr = "%0" + sequencePatternNumberStr.length() + "d";
+    public void setSequenceCounter(long counter) {
+        sequenceCounter = counter;
+    }
+    public long getSequenceCounter() {
+        return sequenceCounter;
+    }
+    public Instant getRotatedInstant() {
+        return rotatedInstant;
     }
 }
