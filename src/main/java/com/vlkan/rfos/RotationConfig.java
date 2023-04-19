@@ -123,6 +123,10 @@ public class RotationConfig {
         return file;
     }
 
+    public String getFilePermission() {
+        return filePermission;
+    }
+
     /**
      * Gets the file pattern to be used while rotating files, if set; otherwise,
      * rotated files will be named by other means, e.g., backup indices.
@@ -299,6 +303,7 @@ public class RotationConfig {
             rotateEmpty == that.compress &&
                 Objects.equals(file, that.file) &&
                 Objects.equals(filePattern, that.filePattern) &&
+                Objects.equals(filePermission, that.filePermission) &&
                 Objects.equals(executorService, that.executorService) &&
                 Objects.equals(policies, that.policies) &&
                 Objects.equals(clock, that.clock) &&
@@ -310,6 +315,7 @@ public class RotationConfig {
         return Objects.hash(
                 file,
                 filePattern,
+                filePermission,
                 executorService,
                 policies,
                 append,
@@ -406,16 +412,19 @@ public class RotationConfig {
          *
          * @return this builder
          */
-        public Builder file(String fileName) throws FileSystemException {
+        public Builder file(String fileName) {
             Objects.requireNonNull(fileName, "fileName");
             this.file = new File(fileName);
+            return this;
+        }
+
+        public Builder filePermission(String filePermission) {
             try {
-                if(this.filePermission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-                    Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(this.filePermission);
+                if(filePermission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+                    Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(filePermission);
                     Files.setPosixFilePermissions(this.file.toPath(), filePermissions);
                 }
             } catch (Exception e) {
-                throw new FileSystemException("Cannot set file permissions");
             }
             return this;
         }
