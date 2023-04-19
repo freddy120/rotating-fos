@@ -71,11 +71,13 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
     private volatile ByteCountingOutputStream stream;
 
     private Pattern sequencePattern = Pattern.compile("(\\$\\{\\s*SEQ\\s*(0+)\\s*})");
+    private Pattern sequenceHexPattern = Pattern.compile("(\\$\\{\\s*SEQHEX\\s*(0+)\\s*})");
     private long sequenceCounter;
     private long maxSequenceNum;
     private String sequencePatternStr;
     private String sequencePatternNumberStr;
     private boolean hasSequencePattern;
+    private boolean hasSequenceHexPattern;
     private String sequencePatternFormatStr;
     private Instant rotatedInstant;
 
@@ -442,7 +444,21 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
             sequencePatternFormatStr = "%0" + sequencePatternNumberStr.length() + "d";
             this.hasSequencePattern = true;
         } else {
-            this.hasSequencePattern = false;
+            pattern = this.config.getFilePattern().getPattern();
+            matcher = sequenceHexPattern.matcher(pattern);
+            if(matcher.find()) {
+
+                this.sequencePatternStr = matcher.group(1);
+                this.sequencePatternNumberStr = matcher.group(2);
+                maxSequenceNum = (long) (Math.pow(2, sequencePatternNumberStr.length()*4) -1);
+                sequencePatternFormatStr = "%0" + sequencePatternNumberStr.length() + "X";
+
+                this.hasSequenceHexPattern = true;
+                this.hasSequencePattern = true;
+            }else{
+                this.hasSequencePattern = false;
+
+            }
         }
     }
     public void setSequenceCounter(long counter) {
