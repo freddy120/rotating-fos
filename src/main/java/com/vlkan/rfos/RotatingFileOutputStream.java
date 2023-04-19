@@ -29,10 +29,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -169,8 +168,8 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         // Backup file, if enabled.
         File rotatedFile;
         if (config.getMaxBackupCount() > 0) {
-            renameBackups();
-            rotatedFile = backupFile();
+            renameBackups(config.getFilePermission());
+            rotatedFile = backupFile(config.getFilePermission());
         }
 
         // Otherwise, rename using the provided file pattern.
@@ -196,7 +195,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
             }
             rotatedInstant = instant;
             LOGGER.debug("renaming {file={}, rotatedFile={}}", config.getFile(), rotatedFile);
-            renameFile(config.getFile(), rotatedFile);
+            renameFile(config.getFile(), rotatedFile, config.getFilePermission());
         }
 
         // Re-open the file.
@@ -242,32 +241,47 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
     }
 
     private void renameBackups() throws IOException {
+        renameBackups(null);
+    }
+    private void renameBackups(String dstFilePermission) throws IOException {
         File dstFile = getBackupFile(config.getMaxBackupCount() - 1);
         for (int backupIndex = config.getMaxBackupCount() - 2; backupIndex >= 0; backupIndex--) {
             File srcFile = getBackupFile(backupIndex);
             if (srcFile.exists()) {
                 LOGGER.debug("renaming backup {srcFile={}, dstFile={}}", srcFile, dstFile);
-                renameFile(srcFile, dstFile);
+                renameFile(srcFile, dstFile, dstFilePermission);
             }
             dstFile = srcFile;
         }
     }
 
     private File backupFile() throws IOException {
+        return backupFile(null);
+    }
+    private File backupFile(String dstFilePermission) throws IOException {
         File dstFile = getBackupFile(0);
         File srcFile = config.getFile();
         LOGGER.debug("renaming for backup {srcFile={}, dstFile={}}", srcFile, dstFile);
-        renameFile(srcFile, dstFile);
+        renameFile(srcFile, dstFile, dstFilePermission);
         return dstFile;
     }
 
-    private static void renameFile(File srcFile, File dstFile) throws IOException {
+    private static void renameFile(File srcFile, File dstFile, String dstFilePermission) throws IOException {
         Files.move(
                 srcFile.toPath(),
                 dstFile.toPath(),
                 StandardCopyOption.REPLACE_EXISTING/*,      // The rest of the arguments (atomic & copy-attr) are pretty
                 StandardCopyOption.ATOMIC_MOVE,             // much platform-dependent and JVM throws an "unsupported
                 StandardCopyOption.COPY_ATTRIBUTES*/);      // option" exception at runtime.
+
+        try {
+            if(dstFilePermission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+                Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(dstFilePermission);
+                Files.setPosixFilePermissions(dstFile.toPath(), filePermissions);
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Cannot assign permissions to dst file: {}", dstFile);
+        }
     }
 
     private File getBackupFile(int backupIndex) {
