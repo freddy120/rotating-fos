@@ -19,6 +19,12 @@ package com.vlkan.rfos;
 import com.vlkan.rfos.policy.RotationPolicy;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystemException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -77,6 +83,8 @@ public class RotationConfig {
 
     private final File file;
 
+    private final String filePermission;
+
     private final RotatingFilePattern filePattern;
 
     private final ScheduledExecutorService executorService;
@@ -96,6 +104,7 @@ public class RotationConfig {
 
     private RotationConfig(Builder builder) {
         this.file = builder.file;
+        this.filePermission = builder.filePermission;
         this.filePattern = builder.filePattern;
         this.executorService = builder.executorService;
         this.policies = Collections.unmodifiableSet(builder.policies);
@@ -340,6 +349,8 @@ public class RotationConfig {
 
         private File file;
 
+        private String filePermission;
+
         private RotatingFilePattern filePattern;
 
         private ScheduledExecutorService executorService;
@@ -362,6 +373,7 @@ public class RotationConfig {
 
         private Builder(RotationConfig config) {
             this.file = config.file;
+            this.filePermission = config.filePermission;
             this.filePattern = config.filePattern;
             this.executorService = config.executorService;
             this.policies = config.policies;
@@ -394,9 +406,17 @@ public class RotationConfig {
          *
          * @return this builder
          */
-        public Builder file(String fileName) {
+        public Builder file(String fileName) throws FileSystemException {
             Objects.requireNonNull(fileName, "fileName");
             this.file = new File(fileName);
+            try {
+                if(this.filePermission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+                    Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(this.filePermission);
+                    Files.setPosixFilePermissions(this.file.toPath(), filePermissions);
+                }
+            } catch (Exception e) {
+                throw new FileSystemException("Cannot set file permissions");
+            }
             return this;
         }
 
