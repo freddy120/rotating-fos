@@ -201,10 +201,11 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         // Re-open the file.
         LOGGER.debug("re-opening file {file={}}", config.getFile());
         stream = open(policy, instant);
+        setPermissionsToFile(config.getFile(), config.getFilePermission());
 
         // Compress the old file, if necessary.
         if (config.isCompress()) {
-            asyncCompress(policy, instant, rotatedFile);
+            asyncCompress(policy, instant, rotatedFile, config.getFilePermission());
             return;
         }
 
@@ -274,14 +275,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
                 StandardCopyOption.ATOMIC_MOVE,             // much platform-dependent and JVM throws an "unsupported
                 StandardCopyOption.COPY_ATTRIBUTES*/);      // option" exception at runtime.
 
-        try {
-            if(dstFilePermission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-                Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(dstFilePermission);
-                Files.setPosixFilePermissions(dstFile.toPath(), filePermissions);
-            }
-        } catch (Exception e) {
-            LOGGER.debug("Cannot assign permissions to dst file: {}", dstFile);
-        }
+        setPermissionsToFile(dstFile, dstFilePermission);
     }
 
     private File getBackupFile(int backupIndex) {
@@ -293,7 +287,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         return Paths.get(parent, fileName).toFile();
     }
 
-    private void asyncCompress(RotationPolicy policy, Instant instant, File rotatedFile) {
+    private void asyncCompress(RotationPolicy policy, Instant instant, File rotatedFile, String dstFilePermission) {
         config.getExecutorService().execute(new Runnable() {
 
             private final String displayName =
@@ -304,6 +298,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
             @Override
             public void run() {
                 File compressedFile = getCompressedFile(rotatedFile);
+
+                setPermissionsToFile(compressedFile, dstFilePermission);
+
                 try {
                     unsafeSyncCompress(rotatedFile, compressedFile);
                     invokeCallbacks(callback -> callback.onSuccess(policy, instant, compressedFile));
@@ -483,5 +480,16 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
     }
     public Instant getRotatedInstant() {
         return rotatedInstant;
+    }
+
+    public static void setPermissionsToFile(File file, String permission) {
+        try {
+            if(permission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+                Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(permission);
+                Files.setPosixFilePermissions(file.toPath(), filePermissions);
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Cannot assign permissions {} to dst file: {}", permission, file);
+        }
     }
 }

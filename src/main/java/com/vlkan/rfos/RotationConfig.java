@@ -419,13 +419,8 @@ public class RotationConfig {
         }
 
         public Builder filePermission(String filePermission) {
-            try {
-                if(filePermission != null && FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-                    Set<PosixFilePermission> filePermissions = PosixFilePermissions.fromString(filePermission);
-                    Files.setPosixFilePermissions(this.file.toPath(), filePermissions);
-                }
-            } catch (Exception e) {
-            }
+            this.filePermission = filePermission;
+            RotatingFileOutputStream.setPermissionsToFile(this.file, this.filePermission);
             return this;
         }
 
