@@ -25,6 +25,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -96,11 +97,15 @@ public class RotationConfig {
     private final boolean compress;
     private final boolean rotateEmpty;
 
+    private long sequenceCounter = 0;
+
     private final int maxBackupCount;
 
     private final Clock clock;
 
     private final Set<RotationCallback> callbacks;
+
+    private LocalDate lastLocalDate;
 
     private RotationConfig(Builder builder) {
         this.file = builder.file;
@@ -111,9 +116,11 @@ public class RotationConfig {
         this.append = builder.append;
         this.compress = builder.compress;
         this.rotateEmpty = builder.rotateEmpty;
+        this.lastLocalDate = builder.lastLocalDate;
         this.maxBackupCount = builder.maxBackupCount;
         this.clock = builder.clock;
         this.callbacks = Collections.unmodifiableSet(builder.callbacks);
+        this.sequenceCounter = builder.sequenceCounter;
     }
 
     /**
@@ -225,6 +232,22 @@ public class RotationConfig {
         return rotateEmpty;
     }
 
+    public long getSequenceCounter() {
+        return sequenceCounter;
+    }
+
+    public void setSequenceCounter(long sequenceCounter) {
+        this.sequenceCounter = sequenceCounter;
+    }
+
+    public LocalDate getLastLocalDate() {
+        return lastLocalDate;
+    }
+
+    public void setLastLocalDate(LocalDate lastLocalDate) {
+        this.lastLocalDate = lastLocalDate;
+    }
+
     /**
      * @return the default value of the {@code maxBackupCount}, indicating, if
      * greater than zero, rotated files will be named as {@code file.0},
@@ -300,7 +323,9 @@ public class RotationConfig {
         return append == that.append &&
                 compress == that.compress &&
 				maxBackupCount == that.maxBackupCount &&
-            rotateEmpty == that.compress &&
+            rotateEmpty == that.rotateEmpty &&
+            sequenceCounter == that.sequenceCounter &&
+            lastLocalDate == that.lastLocalDate &&
                 Objects.equals(file, that.file) &&
                 Objects.equals(filePattern, that.filePattern) &&
                 Objects.equals(filePermission, that.filePermission) &&
@@ -321,6 +346,8 @@ public class RotationConfig {
                 append,
                 compress,
                 rotateEmpty,
+                sequenceCounter,
+                lastLocalDate,
                 maxBackupCount,
                 clock,
                 callbacks);
@@ -367,6 +394,8 @@ public class RotationConfig {
 
         private boolean compress = DEFAULT_COMPRESS;
         private boolean rotateEmpty = false;
+        private long sequenceCounter = 0;
+        private LocalDate lastLocalDate = null;
 
         private int maxBackupCount = DEFAULT_MAX_BACKUP_COUNT;
 
@@ -386,6 +415,8 @@ public class RotationConfig {
             this.append = config.append;
             this.compress = config.append;
             this.rotateEmpty = config.rotateEmpty;
+            this.sequenceCounter = config.sequenceCounter;
+            this.lastLocalDate = config.lastLocalDate;
             this.maxBackupCount = config.maxBackupCount;
             this.clock = config.clock;
             this.callbacks = config.callbacks;
@@ -555,6 +586,16 @@ public class RotationConfig {
 
         public Builder rotateEmpty(boolean rotateEmpty) {
             this.rotateEmpty = rotateEmpty;
+            return this;
+        }
+
+        public Builder sequenceCounter(long sequenceCounter) {
+            this.sequenceCounter = sequenceCounter;
+            return this;
+        }
+
+        public Builder lastLocalData(LocalDate lastLocalDate) {
+            this.lastLocalDate = lastLocalDate;
             return this;
         }
 

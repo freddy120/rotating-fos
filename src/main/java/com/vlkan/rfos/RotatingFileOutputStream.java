@@ -86,7 +86,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
      * @param config a configuration instance
      */
     public RotatingFileOutputStream(RotationConfig config) {
-        this(config, 0);
+        this(config, config.getSequenceCounter());
     }
     public RotatingFileOutputStream(RotationConfig config, long counter) {
         this.config = Objects.requireNonNull(config, "config");
@@ -94,8 +94,6 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         this.writeSensitivePolicies = collectWriteSensitivePolicies(config.getPolicies());
         this.stream = open(null, config.getClock().now());
         setSequencePatternStr();
-//        if(hasSequencePattern)
-//            setSequenceCounter(counter);
         setSequenceCounter(counter);
         startPolicies();
     }
@@ -165,6 +163,22 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         invokeCallbacks(callback -> callback.onClose(policy, instant, stream));
         stream.close();
 
+
+
+        //restart sequence counter if date has changed
+        Instant nowInstant = Instant.now();
+        LocalDate nowLocalDate = LocalDate.from(nowInstant.atZone(TimeZone.getDefault().toZoneId()));
+        if (this.config.getLastLocalDate() == null) {
+            sequenceCounter = 0;
+            this.config.setSequenceCounter(0);
+        } else {
+            if (nowLocalDate.isAfter(this.config.getLastLocalDate())) {
+                sequenceCounter = 0;
+                this.config.setSequenceCounter(0);
+            }
+        }
+
+
         // Backup file, if enabled.
         File rotatedFile;
         if (config.getMaxBackupCount() > 0) {
@@ -178,13 +192,12 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
                 String seqToAddStr;
                 File rotatedFileTemp;
                 seqToAddStr = String.format(sequencePatternFormatStr, sequenceCounter);
-                //rotatedFile = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
                 rotatedFileTemp = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
-                //while(rotatedFile.exists()) {
+
                 while(rotatedFileTemp.exists()) {
                     incrementSequenceCounter();
                     seqToAddStr = String.format(sequencePatternFormatStr, sequenceCounter);
-                    //rotatedFile = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
+
                     rotatedFileTemp = config.getFilePattern().create(instant, sequencePatternStr, seqToAddStr).getAbsoluteFile();
                     if(0 == sequenceCounter)
                         break;
@@ -195,6 +208,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
             }
             rotatedInstant = instant;
             LOGGER.debug("renaming {file={}, rotatedFile={}}", config.getFile(), rotatedFile);
+
+            incrementSequenceCounter();//counter must have the next value of the file, not the current one
+            this.config.setLastLocalDate(nowLocalDate);
             renameFile(config.getFile(), rotatedFile, config.getFilePermission());
         }
 
@@ -444,6 +460,8 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         if(sequenceCounter > maxSequenceNum) {
             sequenceCounter = 0;
         }
+        this.config.setSequenceCounter(sequenceCounter);
+
     }
     private void setSequencePatternStr() {
         String pattern = this.config.getFilePattern().getPattern();
@@ -472,8 +490,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
             }
         }
     }
-    public void setSequenceCounter(long counter) {
+    private void setSequenceCounter(long counter) {
         sequenceCounter = counter;
+        this.config.setSequenceCounter(sequenceCounter);
     }
     public long getSequenceCounter() {
         return sequenceCounter;
